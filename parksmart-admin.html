@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ParkSmart – Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0f4fa;
+    --surface: #e8eef8;
+    --card: #ffffff;
+    --border: #dce5f0;
+    --border2: #eaf0f8;
+    --free: #1a73e8;
+    --free-bg: rgba(26,115,232,0.08);
+    --occupied: #e53935;
+    --occ-bg: rgba(229,57,53,0.07);
+    --warn: #f59e0b;
+    --warn-bg: rgba(245,158,11,0.1);
+    --blue: #1a73e8;
+    --blue-bg: rgba(26,115,232,0.08);
+    --text: #1a2332;
+    --muted: #6b7c99;
+    --muted2: #a0aec0;
+    --success: #16a34a;
+    --success-bg: rgba(22,163,74,0.08);
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'DM Sans', sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-head); min-height:100vh; display:flex; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: fixed; height: 100vh; z-index: 50;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.05);
+  }
+  .sidebar-logo {
+    padding: 1.4rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 1.15rem; font-weight: 800; letter-spacing: -.5px;
+  }
+  .sidebar-logo span { color: var(--free); }
+  .sidebar-role {
+    font-size: .65rem; font-weight: 500; color: var(--muted);
+    letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px;
+  }
+  .sidebar-nav { flex: 1; padding: 1rem 0; }
+  .nav-section { font-size: .6rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted2); padding: .4rem 1.2rem; margin-top: .8rem; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: .6rem 1.2rem; font-size: .88rem; font-weight: 500;
+    color: var(--muted); cursor: pointer; border-left: 2px solid transparent;
+    transition: all .15s;
+  }
+  .nav-item:hover { color: var(--text); background: var(--free-bg); }
+  .nav-item.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-bg); font-weight: 700; }
+  .nav-item .ni { font-size: 1rem; }
+  .sidebar-footer {
+    padding: 1rem 1.2rem; border-top: 1px solid var(--border);
+    font-size: .78rem;
+  }
+  .admin-chip { display: flex; align-items: center; gap: 8px; }
+  .admin-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), #4a9eff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 700; color: #fff;
+  }
+  .admin-name { font-weight: 700; font-size: .82rem; }
+  .admin-tag  { font-size: .68rem; color: var(--muted); }
+
+  /* ── MAIN ── */
+  .main { margin-left: 220px; flex: 1; min-height: 100vh; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: rgba(255,255,255,0.96); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.8rem; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .topbar-title { font-size: 1rem; font-weight: 800; color: var(--text); }
+  .topbar-right { display: flex; align-items: center; gap: .8rem; }
+  .live-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--free-bg); border: 1px solid rgba(26,115,232,.3);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: .72rem; font-weight: 600; color: var(--free);
+  }
+  .live-chip::before { content:''; width:6px; height:6px; background:var(--free); border-radius:50%; animation:pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.4;transform:scale(1.4);} }
+  .clock-display { font-family: var(--font-mono); font-size: .85rem; color: var(--muted); font-weight: 500; }
+
+  /* ── CONTENT ── */
+  .content { padding: 1.8rem; }
+
+  /* ── STAT CARDS ── */
+  .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.8rem; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.1rem 1.2rem;
+    position: relative; overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  .stat-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  }
+  .stat-card.green::before { background: var(--free); }
+  .stat-card.red::before   { background: var(--occupied); }
+  .stat-card.warn::before  { background: var(--warn); }
+  .stat-card.blue::before  { background: var(--blue); }
+  .stat-label { font-size: .72rem; color: var(--muted); font-weight: 500; margin-bottom: .5rem; letter-spacing: .5px; }
+  .stat-val   { font-size: 2rem; font-weight: 800; line-height: 1; font-family: var(--font-mono); }
+  .stat-val.green { color: var(--free); }
+  .stat-val.red   { color: var(--occupied); }
+  .stat-val.warn  { color: var(--warn); }
+  .stat-val.blue  { color: var(--free); }
+  .stat-sub { font-size: .68rem; color: var(--muted); margin-top: .4rem; }
+
+  /* ── TWO-COL LAYOUT ── */
+  .two-col { display: grid; grid-template-columns: 1fr 380px; gap: 1.2rem; margin-bottom: 1.8rem; }
+
+  /* ── SECTION CARD ── */
+  .section-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+  }
+  .section-head {
+    padding: .9rem 1.2rem; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .section-head-title { font-size: .88rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .section-body { padding: 1.2rem; }
+
+  /* ── SLOT GRID ── */
+  .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px,1fr)); gap: 8px; }
+  .slot {
+    aspect-ratio: 1; border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border: 1.5px solid transparent; cursor: pointer;
+    transition: all .15s; font-weight: 700; user-select: none;
+  }
+  .slot-id  { font-size: .82rem; line-height: 1; }
+  .slot-tag { font-size: .52rem; font-weight: 400; margin-top: 3px; opacity: .75; font-family: var(--font-head); text-align:center; }
+  .slot.free     { background:var(--free-bg); border-color:rgba(26,115,232,.35); color:var(--free); }
+  .slot.free:hover { border-color:var(--free); transform:scale(1.06); box-shadow:0 4px 16px rgba(26,115,232,.15); }
+  .slot.occupied { background:var(--occ-bg); border-color:rgba(229,57,53,.35); color:var(--occupied); }
+  .slot.occupied:hover { border-color:var(--occupied); transform:scale(1.04); box-shadow:0 4px 14px rgba(229,57,53,.15); }
+  .slot.overdue  { background:rgba(245,158,11,.1); border-color:rgba(245,158,11,.4); color:var(--warn); animation: blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.6;} }
+
+  /* ── BOOKING TABLE ── */
+  .booking-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .booking-table th { text-align:left; padding: .55rem .8rem; font-size: .65rem; font-weight: 600; letter-spacing: 1px; text-transform:uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .booking-table td { padding: .65rem .8rem; border-bottom: 1px solid var(--border2); vertical-align: middle; }
+  .booking-table tr:last-child td { border-bottom: none; }
+  .booking-table tr:hover td { background: var(--free-bg); }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 9px; border-radius: 20px; font-size: .68rem; font-weight: 600;
+  }
+  .pill-active  { background:var(--free-bg); color:var(--free); border:1px solid rgba(26,115,232,.3); }
+  .pill-overdue { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(245,158,11,.3); }
+  .pill-exit    { background:var(--blue-bg); color:var(--blue); border:1px solid rgba(26,115,232,.3); }
+  .pill-done    { background:rgba(107,124,153,.1); color:var(--muted); border:1px solid rgba(107,124,153,.2); }
+  .act-btn {
+    padding: 4px 10px; border-radius: 7px; font-size: .72rem; font-weight: 600;
+    border: none; cursor: pointer; transition: all .15s; font-family: var(--font-head);
+  }
+  .act-btn.verify { background:var(--blue-bg); color:var(--blue); border:1px solid rgba(26,115,232,.3); }
+  .act-btn.verify:hover { background:rgba(26,115,232,.15); }
+  .act-btn.flag   { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(245,158,11,.3); }
+  .act-btn.flag:hover { background:rgba(245,158,11,.2); }
+  .mono { font-family: var(--font-mono); font-size: .8rem; }
+
+  /* ── EXIT VERIFY PANEL ── */
+  .verify-panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.3rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  .verify-title { font-size: .88rem; font-weight: 800; margin-bottom: 1rem; display:flex; align-items:center; gap:8px; }
+  .input-field {
+    width: 100%; padding: 10px 12px;
+    background: #f8fafd; border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: var(--font-head);
+    font-size: .88rem; outline: none; transition: border-color .2s, background .2s; margin-bottom: .75rem;
+  }
+  .input-field:focus { border-color: var(--blue); background: #fff; }
+  .otp-row { display:flex; gap:8px; margin-bottom:.75rem; }
+  .otp-box {
+    width: 46px; height: 46px; border-radius: 10px;
+    background: #f8fafd; border: 1px solid var(--border);
+    color: var(--text); font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700;
+    text-align: center; outline: none; transition: border-color .2s;
+  }
+  .otp-box:focus { border-color: var(--blue); background: #fff; }
+  .verify-btn {
+    width: 100%; padding: 11px; border: none; border-radius: 10px;
+    font-family: var(--font-head); font-size: .9rem; font-weight: 700;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .vbtn-primary { background: linear-gradient(135deg,#1a73e8,#4a9eff); color: #fff; margin-bottom: .5rem; }
+  .vbtn-primary:hover { opacity: .88; }
+  .vbtn-warn { background: linear-gradient(135deg,#d97706,#f59e0b); color: #fff; margin-bottom: .5rem; }
+  .vbtn-warn:hover { opacity: .88; }
+  .vbtn-success { background: linear-gradient(135deg,#16a34a,#22c55e); color: #fff; margin-bottom: .5rem; }
+  .vbtn-success:hover { opacity: .88; }
+  .vbtn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .vbtn-outline:hover { border-color: var(--muted); color: var(--text); }
+  .vbtn-danger { background: linear-gradient(135deg,#e53935,#ef5350); color: #fff; margin-bottom:.5rem; }
+  .vbtn-danger:hover { opacity:.88; }
+
+  /* Result panels */
+  .result-box { border-radius: 12px; padding: 1rem 1.1rem; margin-top: .8rem; }
+  .result-box.success { background:var(--free-bg); border:1px solid rgba(26,115,232,.25); }
+  .result-box.penalty { background:var(--warn-bg); border:1px solid rgba(245,158,11,.3); }
+  .result-box.error   { background:var(--occ-bg);  border:1px solid rgba(229,57,53,.25); }
+  .result-box.green-success { background:var(--success-bg); border:1px solid rgba(22,163,74,.25); }
+  .result-title { font-weight: 700; font-size: .88rem; margin-bottom: .5rem; }
+  .result-row   { display:flex; justify-content:space-between; font-size:.8rem; padding:4px 0; border-bottom:1px solid rgba(0,0,0,.05); }
+  .result-row:last-child { border-bottom:none; }
+  .result-row .rk { color:var(--muted); }
+  .result-row .rv { font-weight:600; }
+
+  .divider { height:1px; background:var(--border); margin: .8rem 0; }
+
+  /* ── PAYMENT METHODS ── */
+  .pay-methods { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin:.75rem 0; }
+  .pay-btn {
+    padding: 10px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: #f8fafd; color: var(--text);
+    font-family: var(--font-head); font-size: .82rem; font-weight: 600;
+    cursor: pointer; transition: all .15s; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .pay-btn:hover { border-color: var(--blue); color: var(--blue); background:var(--blue-bg); }
+  .pay-btn.selected { border-color: var(--free); color: var(--free); background: var(--free-bg); }
+
+  /* ── ALERTS ── */
+  .alert-list { display:flex; flex-direction:column; gap:.6rem; }
+  .alert-item {
+    display:flex; align-items:flex-start; gap:10px;
+    padding: .75rem; border-radius:10px; font-size:.8rem;
+  }
+  .alert-item.warn { background:var(--warn-bg); border:1px solid rgba(245,158,11,.3); }
+  .alert-item.red  { background:var(--occ-bg);  border:1px solid rgba(229,57,53,.25); }
+  .alert-item.blue { background:var(--blue-bg); border:1px solid rgba(26,115,232,.25); }
+  .alert-item.green { background:var(--success-bg); border:1px solid rgba(22,163,74,.25); }
+  .alert-icon { font-size:1rem; flex-shrink:0; margin-top:1px; }
+  .alert-text { flex:1; }
+  .alert-title { font-weight:700; margin-bottom:2px; color:var(--text); }
+  .alert-sub   { color:var(--muted); font-size:.73rem; }
+  .alert-time  { font-size:.68rem; color:var(--muted2); flex-shrink:0; margin-top:2px; font-family:var(--font-mono); }
+
+  /* ── MODAL ── */
+  .overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.4); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:1rem; }
+  .overlay.open { display:flex; }
+  .modal {
+    background: var(--card); border:1px solid var(--border);
+    border-radius: 18px; width:100%; max-width:420px; padding:1.8rem;
+    animation:slideUp .25s ease; position:relative;
+    box-shadow:0 20px 60px rgba(0,0,0,.15); max-height:90vh; overflow-y:auto;
+  }
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal-close { position:absolute; top:1rem; right:1rem; background:#f0f4fa; border:1px solid var(--border); color:var(--muted); width:28px; height:28px; border-radius:7px; cursor:pointer; font-size:.9rem; display:flex; align-items:center; justify-content:center; transition:background .15s; }
+  .modal-close:hover { background:#e2e8f0; color:var(--text); }
+  .modal-title { font-size:1.1rem; font-weight:800; margin-bottom:.3rem; }
+  .modal-sub   { font-size:.8rem; color:var(--muted); margin-bottom:1.2rem; }
+
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin-bottom:1rem; }
+  .info-cell { background:#f8fafd; border:1px solid var(--border); border-radius:8px; padding:.6rem .8rem; }
+  .info-cell-label { font-size:.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+  .info-cell-val   { font-size:.88rem; font-weight:700; margin-top:2px; }
+
+  /* ══════════════════════════════
+     ADMIN MANAGEMENT TAB STYLES
+  ══════════════════════════════ */
+  .admin-mgmt-grid { display:grid; grid-template-columns:360px 1fr; gap:1.2rem; }
+  
+  .form-label { font-size:.72rem; color:var(--muted); display:block; margin-bottom:5px; font-weight:600; letter-spacing:.3px; }
+  .form-group { margin-bottom:.9rem; }
+  .input-field-lg {
+    width:100%; padding:11px 14px;
+    background:#f8fafd; border:1.5px solid var(--border);
+    border-radius:10px; color:var(--text); font-family:var(--font-head);
+    font-size:.9rem; outline:none; transition:border-color .2s, background .2s;
+  }
+  .input-field-lg:focus { border-color:var(--blue); background:#fff; }
+  .input-field-lg::placeholder { color:var(--muted2); }
+
+  .role-select-grid { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom:.9rem; }
+  .role-opt {
+    padding:10px 8px; border-radius:10px; border:1.5px solid var(--border);
+    background:#f8fafd; cursor:pointer; transition:all .15s; text-align:center;
+    font-family:var(--font-head);
+  }
+  .role-opt:hover { border-color:var(--blue); background:var(--blue-bg); }
+  .role-opt.selected { border-color:var(--free); background:var(--free-bg); }
+  .role-opt .ro-icon { font-size:1.3rem; margin-bottom:4px; }
+  .role-opt .ro-name { font-size:.78rem; font-weight:700; color:var(--text); }
+  .role-opt .ro-desc { font-size:.62rem; color:var(--muted); margin-top:2px; }
+  .role-opt.selected .ro-name { color:var(--free); }
+
+  /* Admin list table */
+  .admin-list-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+  .admin-list-table th { text-align:left; padding:.55rem .8rem; font-size:.65rem; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); }
+  .admin-list-table td { padding:.7rem .8rem; border-bottom:1px solid var(--border2); vertical-align:middle; }
+  .admin-list-table tr:last-child td { border-bottom:none; }
+  .admin-list-table tr:hover td { background:var(--free-bg); }
+
+  .admin-row-avatar {
+    width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.8rem; font-weight:800; color:#fff; flex-shrink:0;
+  }
+  .admin-cell { display:flex; align-items:center; gap:10px; }
+  .admin-cell-name { font-weight:700; font-size:.84rem; }
+  .admin-cell-phone { font-size:.72rem; color:var(--muted); font-family:var(--font-mono); margin-top:1px; }
+
+  .role-badge {
+    padding:3px 9px; border-radius:20px; font-size:.68rem; font-weight:700;
+    display:inline-flex; align-items:center; gap:4px;
+  }
+  .role-super  { background:rgba(26,115,232,.12); color:var(--blue); border:1px solid rgba(26,115,232,.3); }
+  .role-gate   { background:rgba(16,163,74,.1); color:var(--success); border:1px solid rgba(16,163,74,.25); }
+  .role-view   { background:rgba(107,124,153,.1); color:var(--muted); border:1px solid rgba(107,124,153,.2); }
+
+  .del-btn {
+    padding:4px 10px; border-radius:7px; font-size:.72rem; font-weight:600;
+    background:var(--occ-bg); color:var(--occupied); border:1px solid rgba(229,57,53,.25);
+    cursor:pointer; transition:all .15s; font-family:var(--font-head);
+  }
+  .del-btn:hover { background:rgba(229,57,53,.15); }
+
+  .access-badge {
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:20px;
+  }
+  .access-yes { background:var(--success-bg); color:var(--success); border:1px solid rgba(22,163,74,.25); }
+  .access-no  { background:var(--occ-bg); color:var(--occupied); border:1px solid rgba(229,57,53,.2); }
+
+  /* ══════════════════════════════
+     EXPORT TAB STYLES
+  ══════════════════════════════ */
+  .export-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:1.2rem; }
+
+  .export-card {
+    background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:1.4rem;
+    cursor:pointer; transition:all .2s; position:relative; overflow:hidden;
+  }
+  .export-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+  .export-card.xl-green::before { background:linear-gradient(90deg,#16a34a,#22c55e); }
+  .export-card.xl-blue::before  { background:linear-gradient(90deg,#1a73e8,#4a9eff); }
+  .export-card.xl-warn::before  { background:linear-gradient(90deg,#d97706,#f59e0b); }
+  .export-card.xl-purple::before { background:linear-gradient(90deg,#7c3aed,#a855f7); }
+  .export-card:hover { border-color:var(--blue); box-shadow:0 4px 20px rgba(26,115,232,.12); transform:translateY(-2px); }
+
+  .export-card-icon { font-size:2rem; margin-bottom:.7rem; }
+  .export-card-title { font-size:.92rem; font-weight:800; margin-bottom:.3rem; }
+  .export-card-desc { font-size:.75rem; color:var(--muted); line-height:1.5; }
+  .export-card-count { font-size:.68rem; font-weight:700; margin-top:.6rem; display:flex; align-items:center; gap:5px; }
+
+  .export-filter-row {
+    display:flex; align-items:center; gap:.8rem; flex-wrap:wrap;
+    padding:.9rem 1.2rem; background:#f8fafd; border-radius:10px;
+    border:1px solid var(--border); margin-bottom:1rem;
+  }
+  .filter-label { font-size:.72rem; font-weight:700; color:var(--muted); }
+  .filter-select {
+    padding:6px 10px; border-radius:8px; border:1px solid var(--border);
+    background:#fff; color:var(--text); font-family:var(--font-head);
+    font-size:.8rem; outline:none; cursor:pointer;
+  }
+  .filter-select:focus { border-color:var(--blue); }
+
+  .export-btn-main {
+    padding:12px 24px; border-radius:10px; border:none;
+    font-family:var(--font-head); font-size:.9rem; font-weight:700;
+    cursor:pointer; transition:all .15s; display:flex; align-items:center; gap:8px;
+  }
+  .ebtn-green { background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; }
+  .ebtn-green:hover { opacity:.88; }
+  .ebtn-blue  { background:linear-gradient(135deg,#1a73e8,#4a9eff); color:#fff; }
+  .ebtn-blue:hover { opacity:.88; }
+
+  .export-preview { border-radius:12px; overflow:hidden; border:1px solid var(--border); margin-top:1rem; }
+  .export-preview-head { padding:.7rem 1rem; background:linear-gradient(90deg,#1a73e8,#4a9eff); color:#fff; font-size:.78rem; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
+  
+  .toast {
+    position:fixed; bottom:1.5rem; right:1.5rem; z-index:999;
+    background:var(--text); color:#fff; padding:.8rem 1.2rem; border-radius:12px;
+    font-size:.82rem; font-weight:600; display:flex; align-items:center; gap:8px;
+    box-shadow:0 8px 30px rgba(0,0,0,.25); transform:translateY(100px); opacity:0;
+    transition:all .3s ease;
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.green { background:linear-gradient(135deg,#16a34a,#22c55e); }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    Park<span>Smart</span>
+    <div class="sidebar-role">Admin Panel</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="switchTab('dashboard',this)"><span class="ni">🏠</span> Dashboard</div>
+    <div class="nav-item" onclick="switchTab('verify',this)"><span class="ni">🔐</span> Exit Verify</div>
+    <div class="nav-item" onclick="switchTab('bookings',this)"><span class="ni">📋</span> Bookings</div>
+    <div class="nav-item" onclick="switchTab('slots',this)"><span class="ni">🅿</span> Slot Map</div>
+    <div class="nav-section">Reports</div>
+    <div class="nav-item" onclick="switchTab('alerts',this)"><span class="ni">⚠️</span> Alerts <span style="margin-left:auto;background:var(--occupied);color:#fff;font-size:.6rem;padding:1px 6px;border-radius:20px;">3</span></div>
+    <div class="nav-item" onclick="switchTab('revenue',this)"><span class="ni">💰</span> Revenue</div>
+    <div class="nav-section">Management</div>
+    <div class="nav-item" onclick="switchTab('admins',this)"><span class="ni">👥</span> Admin Users</div>
+    <div class="nav-item" onclick="switchTab('export',this)"><span class="ni">📤</span> Export Data</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="admin-chip">
+      <div class="admin-avatar">W</div>
+      <div>
+        <div class="admin-name">Watchman</div>
+        <div class="admin-tag">Gate Officer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbarTitle">Dashboard</div>
+    <div class="topbar-right">
+      <div class="live-chip">System Live</div>
+      <div class="clock-display" id="adminClock">--:--:-- --</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ DASHBOARD TAB ═══ -->
+    <div id="tab-dashboard">
+      <div class="stats-row">
+        <div class="stat-card green"><div class="stat-label">FREE SLOTS</div><div class="stat-val green" id="statFree">10</div><div class="stat-sub">Available right now</div></div>
+        <div class="stat-card red"><div class="stat-label">OCCUPIED</div><div class="stat-val red" id="statOcc">6</div><div class="stat-sub">Currently parked</div></div>
+        <div class="stat-card warn"><div class="stat-label">OVERDUE</div><div class="stat-val warn" id="statOverdue">2</div><div class="stat-sub">Exceeded exit time</div></div>
+        <div class="stat-card blue"><div class="stat-label">TODAY REVENUE</div><div class="stat-val blue">₹1,440</div><div class="stat-sub">12 bookings completed</div></div>
+      </div>
+      <div class="two-col">
+        <div class="section-card">
+          <div class="section-head">
+            <div class="section-head-title">🅿 Live Slot Map – Zone A</div>
+            <span style="font-size:.72rem;color:var(--muted)">Click slot to view details</span>
+          </div>
+          <div class="section-body"><div class="slot-grid" id="adminSlotGrid"></div></div>
+        </div>
+        <div class="section-card">
+          <div class="section-head">
+            <div class="section-head-title">⚠️ Live Alerts</div>
+            <span style="font-size:.72rem;color:var(--occupied);font-weight:600;">3 active</span>
+          </div>
+          <div class="section-body">
+            <div class="alert-list">
+              <div class="alert-item red"><div class="alert-icon">🚨</div><div class="alert-text"><div class="alert-title">Slot A3 – Overdue 22 mins</div><div class="alert-sub">TN 33 AB 1234 · Exit was 02:00 PM</div></div><div class="alert-time">2:22 PM</div></div>
+              <div class="alert-item warn"><div class="alert-icon">⏰</div><div class="alert-text"><div class="alert-title">Slot A7 – Exit in 8 mins</div><div class="alert-sub">KA 05 MN 9988 · Exit at 02:30 PM</div></div><div class="alert-time">2:22 PM</div></div>
+              <div class="alert-item blue"><div class="alert-icon">🔄</div><div class="alert-text"><div class="alert-title">Slot A12 – Conflict Detected</div><div class="alert-sub">Next booking starts at 03:00 PM</div></div><div class="alert-time">2:20 PM</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-head-title">📋 Today's Bookings</div>
+          <span style="font-size:.72rem;color:var(--muted)">Real-time updates</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="booking-table"><thead><tr><th>Slot</th><th>Name</th><th>Vehicle</th><th>Entry</th><th>Exit</th><th>Status</th><th>Amount</th><th>Action</th></tr></thead>
+          <tbody id="bookingTableBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EXIT VERIFY TAB ═══ -->
+    <div id="tab-verify" style="display:none">
+      <div style="max-width:700px;display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+        <div class="verify-panel">
+          <div class="verify-title">🔐 Exit OTP Verification</div>
+          <label class="form-label">Vehicle Number</label>
+          <input class="input-field" type="text" id="vVehicle" placeholder="e.g. TN 33 AB 1234" />
+          <label class="form-label">Enter Exit OTP</label>
+          <div class="otp-row">
+            <input class="otp-box" maxlength="1" id="v1" oninput="vNav(this,'','v2')"/>
+            <input class="otp-box" maxlength="1" id="v2" oninput="vNav(this,'v1','v3')"/>
+            <input class="otp-box" maxlength="1" id="v3" oninput="vNav(this,'v2','v4')"/>
+            <input class="otp-box" maxlength="1" id="v4" oninput="vNav(this,'v3','')"/>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:.75rem;">Demo OTP: <strong style="color:var(--warn);font-family:var(--font-mono);">4 2 8 7</strong></div>
+          <button class="verify-btn vbtn-primary" onclick="verifyExitOTP()">✓ Verify & Allow Exit</button>
+          <button class="verify-btn vbtn-outline" onclick="clearVerify()">Clear</button>
+          <div id="verifyResult"></div>
+        </div>
+        <div class="verify-panel">
+          <div class="verify-title">💰 Penalty Collection</div>
+          <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem;">If vehicle is overdue, collect penalty before generating exit OTP.</p>
+          <label class="form-label">Vehicle Number</label>
+          <input class="input-field" type="text" id="pVehicle" placeholder="e.g. TN 33 AB 1234" />
+          <button class="verify-btn vbtn-warn" onclick="checkPenalty()">Check Penalty Amount</button>
+          <div id="penaltyResult" style="display:none">
+            <div class="divider"></div>
+            <div class="result-box penalty">
+              <div class="result-title" style="color:var(--warn);">⚠ Penalty Due</div>
+              <div class="result-row"><span class="rk">Slot</span><span class="rv mono" id="pSlot">—</span></div>
+              <div class="result-row"><span class="rk">Overdue By</span><span class="rv" style="color:var(--warn)" id="pOverdue">—</span></div>
+              <div class="result-row"><span class="rk">Penalty Amount</span><span class="rv" style="color:var(--occupied);font-size:.95rem;font-weight:800;" id="pAmount">—</span></div>
+            </div>
+            <div class="divider"></div>
+            <label class="form-label">Payment Method</label>
+            <div class="pay-methods">
+              <button class="pay-btn" id="payGpay" onclick="selectPay('gpay')">📱 GPay / UPI</button>
+              <button class="pay-btn" id="payCash" onclick="selectPay('cash')">💵 Hand Cash</button>
+            </div>
+            <button class="verify-btn vbtn-primary" onclick="confirmPenaltyPaid()" id="penaltyPayBtn" style="display:none">✓ Confirm Payment & Generate OTP</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ BOOKINGS TAB ═══ -->
+    <div id="tab-bookings" style="display:none">
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-head-title">📋 All Bookings</div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="booking-table"><thead><tr><th>Slot</th><th>Name</th><th>Vehicle</th><th>Date</th><th>Entry</th><th>Exit</th><th>Status</th><th>Paid</th><th>Refund</th></tr></thead>
+          <tbody id="allBookingsBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SLOT MAP TAB ═══ -->
+    <div id="tab-slots" style="display:none">
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-head-title">🅿 Full Slot Map – Zone A</div>
+          <span style="font-size:.72rem;color:var(--muted)">Click any slot to manage</span>
+        </div>
+        <div class="section-body"><div class="slot-grid" id="adminSlotGrid2"></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ ALERTS TAB ═══ -->
+    <div id="tab-alerts" style="display:none">
+      <div class="section-card">
+        <div class="section-head"><div class="section-head-title">⚠️ All Alerts</div></div>
+        <div class="section-body">
+          <div class="alert-list">
+            <div class="alert-item red"><div class="alert-icon">🚨</div><div class="alert-text"><div class="alert-title">Slot A3 – Overdue 22 mins</div><div class="alert-sub">TN 33 AB 1234 · Exit was 02:00 PM · Penalty: ₹110</div></div><div class="alert-time">2:22 PM</div></div>
+            <div class="alert-item red"><div class="alert-icon">🚨</div><div class="alert-text"><div class="alert-title">Slot A9 – Overdue 5 mins</div><div class="alert-sub">MH 12 XY 7654 · Exit was 02:17 PM · Penalty: ₹25</div></div><div class="alert-time">2:22 PM</div></div>
+            <div class="alert-item warn"><div class="alert-icon">⏰</div><div class="alert-text"><div class="alert-title">Slot A7 – Exit in 8 mins</div><div class="alert-sub">KA 05 MN 9988 · Exit at 02:30 PM</div></div><div class="alert-time">2:22 PM</div></div>
+            <div class="alert-item blue"><div class="alert-icon">🔄</div><div class="alert-text"><div class="alert-title">Slot A12 – Conflict: Next booking starts 03:00 PM</div><div class="alert-sub">Current car must exit before 03:00 PM</div></div><div class="alert-time">2:20 PM</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ REVENUE TAB ═══ -->
+    <div id="tab-revenue" style="display:none">
+      <div class="stats-row">
+        <div class="stat-card blue"><div class="stat-label">TODAY</div><div class="stat-val blue">₹1,440</div><div class="stat-sub">12 bookings</div></div>
+        <div class="stat-card green"><div class="stat-label">THIS WEEK</div><div class="stat-val green">₹8,760</div><div class="stat-sub">73 bookings</div></div>
+        <div class="stat-card warn"><div class="stat-label">PENALTIES</div><div class="stat-val warn">₹480</div><div class="stat-sub">4 overdue today</div></div>
+        <div class="stat-card blue"><div class="stat-label">REFUNDS</div><div class="stat-val blue">₹160</div><div class="stat-sub">8 early exits</div></div>
+      </div>
+      <div class="section-card">
+        <div class="section-head"><div class="section-head-title">💰 Revenue Breakdown</div></div>
+        <div style="overflow-x:auto;"><table class="booking-table"><thead><tr><th>Time</th><th>Slot</th><th>Vehicle</th><th>Base</th><th>Penalty</th><th>Refund</th><th>Net</th></tr></thead><tbody id="revenueBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═══ ADMIN USERS TAB ═══ -->
+    <div id="tab-admins" style="display:none">
+      <div class="admin-mgmt-grid">
+
+        <!-- ADD ADMIN FORM -->
+        <div class="section-card">
+          <div class="section-head">
+            <div class="section-head-title">➕ Add New Admin</div>
+          </div>
+          <div class="section-body">
+            <div class="form-group">
+              <label class="form-label">Full Name *</label>
+              <input class="input-field-lg" type="text" id="newAdminName" placeholder="e.g. Suresh Kumar" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone Number *</label>
+              <input class="input-field-lg" type="tel" id="newAdminPhone" placeholder="e.g. 9876543210" maxlength="10" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Employee ID</label>
+              <input class="input-field-lg" type="text" id="newAdminEmpId" placeholder="e.g. EMP-005 (optional)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="margin-bottom:.5rem;">Access Role *</label>
+              <div class="role-select-grid">
+                <div class="role-opt" id="role-gate" onclick="selectRole('gate')">
+                  <div class="ro-icon">🚦</div>
+                  <div class="ro-name">Gate Officer</div>
+                  <div class="ro-desc">Entry/exit only</div>
+                </div>
+                <div class="role-opt" id="role-super" onclick="selectRole('super')">
+                  <div class="ro-icon">🔑</div>
+                  <div class="ro-name">Super Admin</div>
+                  <div class="ro-desc">Full access</div>
+                </div>
+                <div class="role-opt" id="role-view" onclick="selectRole('view')">
+                  <div class="ro-icon">👁</div>
+                  <div class="ro-name">View Only</div>
+                  <div class="ro-desc">Read access</div>
+                </div>
+                <div class="role-opt" id="role-revenue" onclick="selectRole('revenue')">
+                  <div class="ro-icon">💰</div>
+                  <div class="ro-name">Revenue Mgr</div>
+                  <div class="ro-desc">Finance access</div>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="margin-bottom:.5rem;">Permissions</label>
+              <div style="display:flex;flex-direction:column;gap:.4rem;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;">
+                  <input type="checkbox" id="perm-export" style="accent-color:var(--blue);width:15px;height:15px;"> Allow Excel Export
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;">
+                  <input type="checkbox" id="perm-verify" checked style="accent-color:var(--blue);width:15px;height:15px;"> Can Verify Exits
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;">
+                  <input type="checkbox" id="perm-penalty" checked style="accent-color:var(--blue);width:15px;height:15px;"> Collect Penalties
+                </label>
+              </div>
+            </div>
+
+            <button class="verify-btn vbtn-success" onclick="addAdminUser()" style="font-size:.88rem;">
+              ✓ Add Admin User
+            </button>
+            <div id="addAdminResult"></div>
+          </div>
+        </div>
+
+        <!-- ADMIN LIST -->
+        <div class="section-card">
+          <div class="section-head">
+            <div class="section-head-title">👥 Admin Users <span id="adminCountBadge" style="background:var(--free-bg);color:var(--free);font-size:.68rem;padding:2px 8px;border-radius:20px;margin-left:6px;border:1px solid rgba(26,115,232,.3);">4</span></div>
+            <span style="font-size:.72rem;color:var(--muted)">Manage access</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="admin-list-table">
+              <thead>
+                <tr><th>Admin</th><th>Role</th><th>Export</th><th>Verify</th><th>Added</th><th>Action</th></tr>
+              </thead>
+              <tbody id="adminListBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ EXPORT DATA TAB ═══ -->
+    <div id="tab-export" style="display:none">
+
+      <!-- Export Cards -->
+      <div class="export-grid">
+        <div class="export-card xl-green" onclick="quickExport('entry-exit')">
+          <div class="export-card-icon">📊</div>
+          <div class="export-card-title">Entry & Exit Report</div>
+          <div class="export-card-desc">Full log of all vehicle entries and exits with timestamps, slot numbers, and duration.</div>
+          <div class="export-card-count" style="color:var(--success);">📁 <span id="exportCountEE">8 records today</span></div>
+        </div>
+        <div class="export-card xl-blue" onclick="quickExport('revenue')">
+          <div class="export-card-icon">💰</div>
+          <div class="export-card-title">Revenue Report</div>
+          <div class="export-card-desc">Booking payments, penalties collected, refunds issued and net revenue breakdown.</div>
+          <div class="export-card-count" style="color:var(--blue);">📁 <span>8 transactions today</span></div>
+        </div>
+        <div class="export-card xl-warn" onclick="quickExport('penalties')">
+          <div class="export-card-icon">⚠️</div>
+          <div class="export-card-title">Penalty Log</div>
+          <div class="export-card-desc">All overdue vehicles with penalty amounts, payment methods and collection status.</div>
+          <div class="export-card-count" style="color:var(--warn);">📁 <span>2 overdue today</span></div>
+        </div>
+        <div class="export-card xl-purple" onclick="quickExport('admins')">
+          <div class="export-card-icon">👥</div>
+          <div class="export-card-title">Admin Audit Log</div>
+          <div class="export-card-desc">List of all admin users, their roles, access permissions and activity log.</div>
+          <div class="export-card-count" style="color:#7c3aed;">📁 <span id="exportAdminCount">4 admin users</span></div>
+        </div>
+      </div>
+
+      <!-- Custom Export Panel -->
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-head-title">⚙️ Custom Export</div>
+          <span style="font-size:.72rem;color:var(--muted)">Filter and download specific data</span>
+        </div>
+        <div class="section-body">
+          <div class="export-filter-row">
+            <span class="filter-label">DATA TYPE</span>
+            <select class="filter-select" id="exportType">
+              <option value="entry-exit">Entry & Exit Log</option>
+              <option value="revenue">Revenue Report</option>
+              <option value="penalties">Penalty Log</option>
+              <option value="admins">Admin Users</option>
+            </select>
+            <span class="filter-label">DATE</span>
+            <select class="filter-select" id="exportDate">
+              <option>Today</option>
+              <option>Yesterday</option>
+              <option>This Week</option>
+              <option>This Month</option>
+              <option>All Time</option>
+            </select>
+            <span class="filter-label">STATUS</span>
+            <select class="filter-select" id="exportStatus">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="done">Completed</option>
+              <option value="overdue">Overdue</option>
+            </select>
+            <button class="export-btn-main ebtn-green" onclick="doCustomExport()">
+              📥 Download Excel
+            </button>
+          </div>
+
+          <!-- Preview Table -->
+          <div class="export-preview">
+            <div class="export-preview-head">
+              <span>📋 Preview – Entry & Exit Log (Today)</span>
+              <span id="previewCount" style="font-weight:400;opacity:.85;">8 rows</span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="booking-table" id="exportPreviewTable">
+                <thead><tr id="exportPreviewHead"></tr></thead>
+                <tbody id="exportPreviewBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- SLOT DETAIL MODAL -->
+<div class="overlay" id="slotModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSlotModal()">✕</button>
+    <div class="modal-title" id="smTitle">Slot Detail</div>
+    <div class="modal-sub" id="smSub">Current booking information</div>
+    <div class="info-grid" id="smInfo"></div>
+    <div id="smActions"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toastMsg">✅ Action complete</div>
+
+<script>
+/* ══════════════════════════════════════════
+   DATA
+══════════════════════════════════════════ */
+const pad = n => String(n).padStart(2,'0');
+function nowMins() { const n = new Date(); return n.getHours()*60+n.getMinutes(); }
+function fmt12(m) {
+  const h = Math.floor(m/60)%24, mn = m%60;
+  return `${pad(h%12||12)}:${pad(mn)} ${h>=12?'PM':'AM'}`;
+}
+function today() {
+  const d = new Date();
+  return `${d.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]} ${d.getFullYear()}`;
+}
+
+const now = nowMins();
+
+const bookings = [
+  { id:'B001', slot:'A1',  name:'Arjun Kumar',   vehicle:'TN 33 AB 1234', entry:fmt12(now-90), exit:fmt12(now+30),  paid:120, refund:0,  status:'active' },
+  { id:'B002', slot:'A3',  name:'Priya Rajan',   vehicle:'TN 22 CD 5678', entry:fmt12(now-130),exit:fmt12(now-10),  paid:120, refund:0,  status:'overdue' },
+  { id:'B003', slot:'A5',  name:'Karthik S',     vehicle:'KA 05 MN 9988', entry:fmt12(now-60), exit:fmt12(now+8),   paid:120, refund:0,  status:'active' },
+  { id:'B004', slot:'A6',  name:'Meena Devi',    vehicle:'TN 01 ZZ 4321', entry:fmt12(now-200),exit:fmt12(now-80),  paid:120, refund:20, status:'done' },
+  { id:'B005', slot:'A9',  name:'Ramesh V',      vehicle:'MH 12 XY 7654', entry:fmt12(now-80), exit:fmt12(now-5),   paid:120, refund:0,  status:'overdue' },
+  { id:'B006', slot:'A12', name:'Lakshmi P',     vehicle:'TN 72 HH 1122', entry:fmt12(now-50), exit:fmt12(now+40),  paid:120, refund:0,  status:'active' },
+  { id:'B007', slot:'A15', name:'Vijay R',       vehicle:'TN 11 KK 8877', entry:fmt12(now-30), exit:fmt12(now+90),  paid:120, refund:0,  status:'active' },
+  { id:'B008', slot:'A2',  name:'Anitha M',      vehicle:'TN 55 PP 3344', entry:fmt12(now-180),exit:fmt12(now-60),  paid:120, refund:20, status:'done' },
+];
+
+const slots = ['A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12','A13','A14','A15','A16'].map(id => {
+  const b = bookings.find(bk => bk.slot === id && bk.status !== 'done');
+  let state = 'free';
+  if (b) {
+    const entry = parseTime12(b.entry), exit = parseTime12(b.exit);
+    if (now >= entry && now < exit) state = 'occupied';
+    else if (now >= exit) state = 'overdue';
+  }
+  return { id, state, booking: b || null };
+});
+
+function parseTime12(str) {
+  if (!str) return 0;
+  const [t, p] = str.split(' ');
+  let [h, m] = t.split(':').map(Number);
+  if (p==='PM'&&h!==12) h+=12;
+  if (p==='AM'&&h===12) h=0;
+  return h*60+m;
+}
+
+/* ── ADMIN USERS DATA ── */
+let adminUsers = [
+  { id:'ADM001', name:'Watchman',    phone:'9876543210', role:'gate',    empId:'EMP-001', permExport:false, permVerify:true,  permPenalty:true,  addedDate:today() },
+  { id:'ADM002', name:'Suresh Kumar', phone:'9944112233', role:'super',   empId:'EMP-002', permExport:true,  permVerify:true,  permPenalty:true,  addedDate:today() },
+  { id:'ADM003', name:'Kavitha R',   phone:'9988776655', role:'view',    empId:'EMP-003', permExport:true,  permVerify:false, permPenalty:false, addedDate:today() },
+  { id:'ADM004', name:'Murugan S',   phone:'9900112244', role:'revenue', empId:'EMP-004', permExport:true,  permVerify:false, permPenalty:true,  addedDate:today() },
+];
+let selectedRole = null;
+let adminCounter = 5;
+
+const roleColors = { super:'role-super', gate:'role-gate', view:'role-view', revenue:'role-view' };
+const roleLabels = { super:'🔑 Super Admin', gate:'🚦 Gate Officer', view:'👁 View Only', revenue:'💰 Revenue Mgr' };
+const avatarColors = ['#1a73e8','#16a34a','#d97706','#7c3aed','#e53935','#0891b2','#db2777'];
+
+/* ══════════════════════════════════════════
+   CLOCK
+══════════════════════════════════════════ */
+function updateAdminClock() {
+  const n = new Date();
+  const h=n.getHours(),m=n.getMinutes(),s=n.getSeconds();
+  document.getElementById('adminClock').textContent =
+    `${pad(h%12||12)}:${pad(m)}:${pad(s)} ${h>=12?'PM':'AM'}`;
+}
+updateAdminClock();
+setInterval(updateAdminClock, 1000);
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+function showToast(msg, type='') {
+  const t = document.getElementById('toastMsg');
+  t.textContent = msg;
+  t.className = 'toast' + (type ? ' '+type : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* ══════════════════════════════════════════
+   TAB SWITCHING
+══════════════════════════════════════════ */
+const tabTitles = { dashboard:'Dashboard', verify:'Exit Verification', bookings:'All Bookings', slots:'Slot Map', alerts:'Alerts', revenue:'Revenue', admins:'Admin Users', export:'Export Data' };
+function switchTab(name, el) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display='none');
+  document.getElementById(`tab-${name}`).style.display='';
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('topbarTitle').textContent = tabTitles[name] || name;
+  if (name==='slots') buildSlotGrid('adminSlotGrid2');
+  if (name==='admins') buildAdminList();
+  if (name==='export') buildExportPreview();
+}
+function switchTabDirect(name) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display='none');
+  document.getElementById(`tab-${name}`).style.display='';
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('topbarTitle').textContent = tabTitles[name];
+}
+
+/* ══════════════════════════════════════════
+   SLOT GRID
+══════════════════════════════════════════ */
+function buildSlotGrid(containerId) {
+  const grid = document.getElementById(containerId);
+  if (!grid) return;
+  grid.innerHTML = '';
+  let f=0, o=0, ov=0;
+  slots.forEach(s => {
+    if (s.state==='free') f++;
+    else if (s.state==='occupied') o++;
+    else ov++;
+    const el = document.createElement('div');
+    el.className = `slot ${s.state}`;
+    let tag = s.state==='free' ? 'FREE' : s.state==='occupied' ? 'OCCUPIED' : '⚠ OVERDUE';
+    el.innerHTML = `<div class="slot-id">${s.id}</div><div class="slot-tag">${tag}</div>`;
+    el.addEventListener('click', () => openSlotModal(s));
+    grid.appendChild(el);
+  });
+  document.getElementById('statFree').textContent = f;
+  document.getElementById('statOcc').textContent  = o;
+  document.getElementById('statOverdue').textContent = ov;
+}
+
+/* ══════════════════════════════════════════
+   SLOT MODAL
+══════════════════════════════════════════ */
+function openSlotModal(slot) {
+  const b = slot.booking;
+  document.getElementById('smTitle').textContent = `Slot ${slot.id}`;
+  document.getElementById('smSub').textContent = slot.state === 'free' ? 'This slot is available' : `Status: ${slot.state.toUpperCase()}`;
+  const infoGrid = document.getElementById('smInfo');
+  if (b) {
+    infoGrid.innerHTML = `
+      <div class="info-cell"><div class="info-cell-label">Name</div><div class="info-cell-val">${b.name}</div></div>
+      <div class="info-cell"><div class="info-cell-label">Vehicle</div><div class="info-cell-val" style="font-family:var(--font-mono);font-size:.8rem">${b.vehicle}</div></div>
+      <div class="info-cell"><div class="info-cell-label">Entry</div><div class="info-cell-val">${b.entry}</div></div>
+      <div class="info-cell"><div class="info-cell-label">Exit</div><div class="info-cell-val" style="color:${slot.state==='overdue'?'var(--warn)':'inherit'}">${b.exit}</div></div>
+      <div class="info-cell"><div class="info-cell-label">Paid</div><div class="info-cell-val" style="color:var(--free)">₹${b.paid}</div></div>
+      <div class="info-cell"><div class="info-cell-label">Status</div><div class="info-cell-val" style="color:${slot.state==='overdue'?'var(--warn)':slot.state==='occupied'?'var(--occupied)':'var(--free)'}">${slot.state.toUpperCase()}</div></div>`;
+    const actions = document.getElementById('smActions');
+    if (slot.state === 'overdue') {
+      const overdueMins = now - parseTime12(b.exit);
+      const penalty = overdueMins * 5;
+      actions.innerHTML = `
+        <div class="result-box penalty" style="margin-bottom:.8rem">
+          <div class="result-title" style="color:var(--warn)">⚠ Overdue by ${overdueMins} mins</div>
+          <div class="result-row"><span class="rk">Penalty</span><span class="rv" style="color:var(--occupied)">₹${penalty}</span></div>
+        </div>
+        <button class="verify-btn vbtn-warn" onclick="closeSlotModal();switchTabDirect('verify')">Go to Exit Verify →</button>`;
+    } else {
+      actions.innerHTML = `<button class="verify-btn vbtn-outline" onclick="closeSlotModal()">Close</button>`;
+    }
+  } else {
+    infoGrid.innerHTML = `<div class="info-cell" style="grid-column:1/-1"><div class="info-cell-label">Status</div><div class="info-cell-val" style="color:var(--free)">✓ Available for Booking</div></div>`;
+    document.getElementById('smActions').innerHTML = `<button class="verify-btn vbtn-outline" onclick="closeSlotModal()">Close</button>`;
+  }
+  document.getElementById('slotModal').classList.add('open');
+}
+function closeSlotModal() { document.getElementById('slotModal').classList.remove('open'); }
+
+/* ══════════════════════════════════════════
+   BOOKING TABLES
+══════════════════════════════════════════ */
+function buildBookingTable() {
+  const tbody = document.getElementById('bookingTableBody');
+  tbody.innerHTML = '';
+  bookings.forEach(b => {
+    const pillClass = b.status==='active'?'pill-active':b.status==='overdue'?'pill-overdue':b.status==='exit'?'pill-exit':'pill-done';
+    const pillLabel = b.status==='active'?'● Active':b.status==='overdue'?'⚠ Overdue':'✓ Done';
+    const actionBtn = (b.status==='active'||b.status==='overdue')
+      ? `<button class="act-btn verify" onclick="prefillVerify('${b.vehicle}')">Verify Exit</button>` : '—';
+    tbody.innerHTML += `<tr>
+      <td><span style="font-family:var(--font-mono);font-weight:700;color:var(--free)">${b.slot}</span></td>
+      <td>${b.name}</td><td class="mono">${b.vehicle}</td>
+      <td>${b.entry}</td><td>${b.exit}</td>
+      <td><span class="status-pill ${pillClass}">${pillLabel}</span></td>
+      <td style="color:var(--free);font-weight:700">₹${b.paid}</td><td>${actionBtn}</td></tr>`;
+  });
+}
+
+function buildAllBookings() {
+  const tbody = document.getElementById('allBookingsBody');
+  tbody.innerHTML = '';
+  bookings.forEach(b => {
+    const pillClass = b.status==='active'?'pill-active':b.status==='overdue'?'pill-overdue':'pill-done';
+    const pillLabel = b.status==='active'?'● Active':b.status==='overdue'?'⚠ Overdue':'✓ Done';
+    const refundStr = b.refund>0?`<span style="color:var(--free)">-₹${b.refund}</span>`:'—';
+    tbody.innerHTML += `<tr>
+      <td class="mono" style="color:var(--free)">${b.slot}</td><td>${b.name}</td>
+      <td class="mono">${b.vehicle}</td><td>${today()}</td>
+      <td>${b.entry}</td><td>${b.exit}</td>
+      <td><span class="status-pill ${pillClass}">${pillLabel}</span></td>
+      <td style="color:var(--free)">₹${b.paid}</td><td>${refundStr}</td></tr>`;
+  });
+}
+
+function buildRevenue() {
+  const tbody = document.getElementById('revenueBody');
+  tbody.innerHTML = '';
+  bookings.forEach(b => {
+    const overdueMins = b.status==='overdue'?Math.max(0,now-parseTime12(b.exit)):0;
+    const penalty = overdueMins>0?overdueMins*5:0;
+    const net = b.paid+penalty-b.refund;
+    tbody.innerHTML += `<tr>
+      <td class="mono" style="font-size:.72rem">${b.entry}</td>
+      <td class="mono" style="color:var(--free)">${b.slot}</td>
+      <td class="mono">${b.vehicle}</td>
+      <td>₹${b.paid-20}</td>
+      <td style="color:${penalty>0?'var(--warn)':'var(--muted)'}">${penalty>0?'₹'+penalty:'—'}</td>
+      <td style="color:${b.refund>0?'var(--free)':'var(--muted)'}">${b.refund>0?'-₹'+b.refund:'—'}</td>
+      <td style="font-weight:700;color:var(--free)">₹${net}</td></tr>`;
+  });
+}
+
+/* ══════════════════════════════════════════
+   EXIT OTP VERIFY
+══════════════════════════════════════════ */
+function verifyExitOTP() {
+  const vehicle = document.getElementById('vVehicle').value.trim().toUpperCase();
+  const otp = ['v1','v2','v3','v4'].map(id => document.getElementById(id).value).join('');
+  const resultDiv = document.getElementById('verifyResult');
+  if (!vehicle) { resultDiv.innerHTML = '<div class="result-box error" style="margin-top:.8rem"><div class="result-title" style="color:var(--occupied)">Enter vehicle number</div></div>'; return; }
+  if (otp !== '4287') { resultDiv.innerHTML = '<div class="result-box error" style="margin-top:.8rem"><div class="result-title" style="color:var(--occupied)">❌ Invalid OTP</div><div style="font-size:.78rem;color:var(--muted);margin-top:4px">Demo OTP: 4287</div></div>'; return; }
+  const booking = bookings.find(b => b.vehicle.replace(/\s/g,'').toUpperCase() === vehicle.replace(/\s/g,'') && b.status !== 'done');
+  if (!booking) { resultDiv.innerHTML = '<div class="result-box error" style="margin-top:.8rem"><div class="result-title" style="color:var(--occupied)">❌ Vehicle not found</div></div>'; return; }
+  const exitMins = parseTime12(booking.exit);
+  const isEarly = now < exitMins;
+  const overdueMins = Math.max(0, now - exitMins);
+  const penalty = overdueMins * 5;
+  const refund = isEarly ? 20 : 0;
+  if (overdueMins > 0) {
+    resultDiv.innerHTML = `<div class="result-box penalty" style="margin-top:.8rem">
+      <div class="result-title" style="color:var(--warn)">⚠ Overdue – Collect Penalty First</div>
+      <div class="result-row"><span class="rk">Overdue</span><span class="rv" style="color:var(--warn)">${overdueMins} mins</span></div>
+      <div class="result-row"><span class="rk">Penalty Due</span><span class="rv" style="color:var(--occupied);font-weight:800">₹${penalty}</span></div></div>`;
+    return;
+  }
+  resultDiv.innerHTML = `<div class="result-box success" style="margin-top:.8rem">
+    <div class="result-title" style="color:var(--free)">✓ OTP Verified – Allow Exit</div>
+    <div class="result-row"><span class="rk">Name</span><span class="rv">${booking.name}</span></div>
+    <div class="result-row"><span class="rk">Vehicle</span><span class="rv mono">${booking.vehicle}</span></div>
+    <div class="result-row"><span class="rk">Slot</span><span class="rv">${booking.slot}</span></div>
+    <div class="result-row"><span class="rk">Exit Time</span><span class="rv">${fmt12(now)}</span></div>
+    ${refund>0?`<div class="result-row"><span class="rk">Refund</span><span class="rv" style="color:var(--free);font-weight:800">₹${refund} credited ✓</span></div>`:''}
+  </div>`;
+  booking.status = 'done';
+  const slot = slots.find(s => s.id === booking.slot);
+  if (slot) slot.state = 'free';
+  buildSlotGrid('adminSlotGrid');
+  buildBookingTable();
+}
+function clearVerify() {
+  ['v1','v2','v3','v4'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('vVehicle').value='';
+  document.getElementById('verifyResult').innerHTML='';
+}
+function prefillVerify(vehicle) {
+  switchTabDirect('verify');
+  document.getElementById('vVehicle').value = vehicle;
+  document.getElementById('v1').focus();
+}
+
+/* ══════════════════════════════════════════
+   PENALTY CHECK
+══════════════════════════════════════════ */
+let selectedPayMethod = null;
+function checkPenalty() {
+  const vehicle = document.getElementById('pVehicle').value.trim().toUpperCase();
+  const b = bookings.find(bk => bk.vehicle.replace(/\s/g,'').toUpperCase() === vehicle.replace(/\s/g,'') && bk.status !== 'done');
+  if (!b) { showToast('⚠ Vehicle not found'); return; }
+  const exitMins = parseTime12(b.exit);
+  const overdue = Math.max(0, now - exitMins);
+  if (overdue === 0) { showToast('✅ No penalty – vehicle is not overdue'); return; }
+  const penalty = overdue * 5;
+  document.getElementById('pSlot').textContent    = b.slot;
+  document.getElementById('pOverdue').textContent = `${overdue} mins`;
+  document.getElementById('pAmount').textContent  = `₹${penalty}`;
+  document.getElementById('penaltyResult').style.display = '';
+  document.getElementById('penaltyPayBtn').style.display = 'none';
+  selectedPayMethod = null;
+  document.getElementById('payGpay').classList.remove('selected');
+  document.getElementById('payCash').classList.remove('selected');
+}
+function selectPay(method) {
+  selectedPayMethod = method;
+  document.getElementById('payGpay').classList.toggle('selected', method==='gpay');
+  document.getElementById('payCash').classList.toggle('selected', method==='cash');
+  document.getElementById('penaltyPayBtn').style.display = '';
+}
+function confirmPenaltyPaid() {
+  const method = selectedPayMethod === 'gpay' ? 'GPay/UPI' : 'Hand Cash';
+  showToast(`✅ Penalty collected via ${method}`, 'green');
+  document.getElementById('penaltyResult').style.display = 'none';
+  document.getElementById('pVehicle').value = '';
+}
+
+/* ══════════════════════════════════════════
+   OTP NAV
+══════════════════════════════════════════ */
+function vNav(el, prevId, nextId) {
+  if (el.value && nextId) document.getElementById(nextId).focus();
+  if (!el.value && prevId) document.getElementById(prevId).focus();
+}
+
+/* ══════════════════════════════════════════
+   ADMIN MANAGEMENT
+══════════════════════════════════════════ */
+function selectRole(role) {
+  selectedRole = role;
+  ['gate','super','view','revenue'].forEach(r => {
+    document.getElementById(`role-${r}`).classList.toggle('selected', r===role);
+  });
+  // Auto-set permissions based on role
+  if (role === 'super') {
+    document.getElementById('perm-export').checked = true;
+    document.getElementById('perm-verify').checked = true;
+    document.getElementById('perm-penalty').checked = true;
+  } else if (role === 'gate') {
+    document.getElementById('perm-export').checked = false;
+    document.getElementById('perm-verify').checked = true;
+    document.getElementById('perm-penalty').checked = true;
+  } else if (role === 'view') {
+    document.getElementById('perm-export').checked = true;
+    document.getElementById('perm-verify').checked = false;
+    document.getElementById('perm-penalty').checked = false;
+  } else if (role === 'revenue') {
+    document.getElementById('perm-export').checked = true;
+    document.getElementById('perm-verify').checked = false;
+    document.getElementById('perm-penalty').checked = true;
+  }
+}
+
+function addAdminUser() {
+  const name  = document.getElementById('newAdminName').value.trim();
+  const phone = document.getElementById('newAdminPhone').value.trim();
+  const empId = document.getElementById('newAdminEmpId').value.trim() || `EMP-00${adminCounter}`;
+  const permExport  = document.getElementById('perm-export').checked;
+  const permVerify  = document.getElementById('perm-verify').checked;
+  const permPenalty = document.getElementById('perm-penalty').checked;
+  const resultDiv = document.getElementById('addAdminResult');
+
+  // Validation
+  if (!name) { resultDiv.innerHTML = '<div class="result-box error" style="margin-top:.8rem"><div class="result-title" style="color:var(--occupied)">⚠ Full name is required</div></div>'; return; }
+  if (!phone || !/^\d{10}$/.test(phone)) { resultDiv.innerHTML = '<div class="result-box error" style="margin-top:.8rem"><div class="result-title" style="color:var(--occupied)">⚠ Valid 10-digit phone number required</div></div>'; return; }
+  if (!selectedRole) { resultDiv.innerHTML = '<div class="result-box error" style="margin-top:.8rem"><div class="result-title" style="color:var(--occupied)">⚠ Please select an access role</div></div>'; return; }
+
+  const newAdmin = {
+    id: `ADM00${adminCounter}`,
+    name, phone, role: selectedRole, empId,
+    permExport, permVerify, permPenalty,
+    addedDate: today()
+  };
+  adminUsers.push(newAdmin);
+  adminCounter++;
+
+  // Reset form
+  document.getElementById('newAdminName').value = '';
+  document.getElementById('newAdminPhone').value = '';
+  document.getElementById('newAdminEmpId').value = '';
+  ['gate','super','view','revenue'].forEach(r => document.getElementById(`role-${r}`).classList.remove('selected'));
+  selectedRole = null;
+  document.getElementById('perm-export').checked = false;
+  document.getElementById('perm-verify').checked = true;
+  document.getElementById('perm-penalty').checked = true;
+
+  resultDiv.innerHTML = `<div class="result-box green-success" style="margin-top:.8rem">
+    <div class="result-title" style="color:var(--success)">✓ Admin Added Successfully</div>
+    <div class="result-row"><span class="rk">Name</span><span class="rv">${name}</span></div>
+    <div class="result-row"><span class="rk">Phone</span><span class="rv mono">${phone}</span></div>
+    <div class="result-row"><span class="rk">Role</span><span class="rv">${roleLabels[selectedRole] || roleLabels[newAdmin.role]}</span></div>
+    <div class="result-row"><span class="rk">ID</span><span class="rv mono">${newAdmin.id}</span></div>
+  </div>`;
+
+  buildAdminList();
+  updateAdminCounts();
+  showToast(`✅ ${name} added as admin`, 'green');
+}
+
+function deleteAdmin(id) {
+  const admin = adminUsers.find(a => a.id === id);
+  if (!admin) return;
+  if (!confirm(`Remove ${admin.name} from admin access?`)) return;
+  adminUsers = adminUsers.filter(a => a.id !== id);
+  buildAdminList();
+  updateAdminCounts();
+  showToast(`🗑 ${admin.name} removed`);
+}
+
+function updateAdminCounts() {
+  const count = adminUsers.length;
+  document.getElementById('adminCountBadge').textContent = count;
+  document.getElementById('exportAdminCount').textContent = `${count} admin users`;
+}
+
+function buildAdminList() {
+  const tbody = document.getElementById('adminListBody');
+  tbody.innerHTML = '';
+  adminUsers.forEach((a, idx) => {
+    const color = avatarColors[idx % avatarColors.length];
+    const initials = a.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const roleBadge = `<span class="role-badge ${roleColors[a.role]||'role-view'}">${roleLabels[a.role]||a.role}</span>`;
+    const exportBadge = a.permExport
+      ? `<span class="access-badge access-yes">✓ Yes</span>`
+      : `<span class="access-badge access-no">✗ No</span>`;
+    const verifyBadge = a.permVerify
+      ? `<span class="access-badge access-yes">✓ Yes</span>`
+      : `<span class="access-badge access-no">✗ No</span>`;
+    tbody.innerHTML += `<tr>
+      <td>
+        <div class="admin-cell">
+          <div class="admin-row-avatar" style="background:${color}">${initials}</div>
+          <div>
+            <div class="admin-cell-name">${a.name}</div>
+            <div class="admin-cell-phone">📞 ${a.phone} · ${a.empId}</div>
+          </div>
+        </div>
+      </td>
+      <td>${roleBadge}</td>
+      <td>${exportBadge}</td>
+      <td>${verifyBadge}</td>
+      <td style="font-size:.72rem;color:var(--muted);font-family:var(--font-mono)">${a.addedDate}</td>
+      <td><button class="del-btn" onclick="deleteAdmin('${a.id}')">🗑 Remove</button></td>
+    </tr>`;
+  });
+  document.getElementById('adminCountBadge').textContent = adminUsers.length;
+}
+
+/* ══════════════════════════════════════════
+   EXPORT DATA (CSV download as .xls compatible)
+══════════════════════════════════════════ */
+const exportConfigs = {
+  'entry-exit': {
+    headers: ['Booking ID','Slot','Customer Name','Vehicle No.','Entry Time','Exit Time','Duration','Status','Amount Paid','Refund'],
+    getData: () => bookings.map(b => {
+      const entryM = parseTime12(b.entry), exitM = parseTime12(b.exit);
+      const dur = Math.max(0, exitM - entryM);
+      return [b.id, b.slot, b.name, b.vehicle, b.entry, b.exit, `${Math.floor(dur/60)}h ${dur%60}m`, b.status.toUpperCase(), `₹${b.paid}`, b.refund>0?`₹${b.refund}`:'—'];
+    })
+  },
+  'revenue': {
+    headers: ['Booking ID','Slot','Vehicle No.','Entry','Exit','Base Fare','Penalty','Refund','Net Amount'],
+    getData: () => bookings.map(b => {
+      const overdueMins = b.status==='overdue'?Math.max(0,now-parseTime12(b.exit)):0;
+      const penalty = overdueMins*5;
+      const net = b.paid+penalty-b.refund;
+      return [b.id, b.slot, b.vehicle, b.entry, b.exit, `₹${b.paid-20}`, penalty>0?`₹${penalty}`:'—', b.refund>0?`₹${b.refund}`:'—', `₹${net}`];
+    })
+  },
+  'penalties': {
+    headers: ['Booking ID','Slot','Customer','Vehicle No.','Scheduled Exit','Overdue (mins)','Penalty Amount','Status'],
+    getData: () => bookings.filter(b => b.status==='overdue').map(b => {
+      const overdueMins = Math.max(0,now-parseTime12(b.exit));
+      return [b.id, b.slot, b.name, b.vehicle, b.exit, overdueMins, `₹${overdueMins*5}`, 'PENDING COLLECTION'];
+    })
+  },
+  'admins': {
+    headers: ['Admin ID','Name','Phone','Employee ID','Role','Export Access','Verify Exit','Collect Penalty','Date Added'],
+    getData: () => adminUsers.map(a => [
+      a.id, a.name, a.phone, a.empId,
+      roleLabels[a.role]||a.role,
+      a.permExport?'YES':'NO',
+      a.permVerify?'YES':'NO',
+      a.permPenalty?'YES':'NO',
+      a.addedDate
+    ])
+  }
+};
+
+function buildExportPreview(type) {
+  type = type || document.getElementById('exportType')?.value || 'entry-exit';
+  const config = exportConfigs[type];
+  if (!config) return;
+  const data = config.getData();
+  document.getElementById('previewCount').textContent = `${data.length} rows`;
+
+  const thead = document.getElementById('exportPreviewHead');
+  const tbody = document.getElementById('exportPreviewBody');
+  thead.innerHTML = config.headers.map(h => `<th>${h}</th>`).join('');
+  tbody.innerHTML = '';
+  data.slice(0,5).forEach(row => {
+    tbody.innerHTML += `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`;
+  });
+  if (data.length > 5) {
+    tbody.innerHTML += `<tr><td colspan="${config.headers.length}" style="text-align:center;color:var(--muted);font-size:.72rem;padding:.5rem">... and ${data.length-5} more rows</td></tr>`;
+  }
+}
+
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'exportType') buildExportPreview(e.target.value);
+});
+
+function downloadCSV(type, data, headers, filename) {
+  // Build CSV content with BOM for Excel UTF-8 support
+  const bom = '\uFEFF';
+  const titleRow = [`ParkSmart Export – ${type.toUpperCase()} Report`,'','','','','','','','',''];
+  const dateRow  = [`Generated: ${new Date().toLocaleString('en-IN')}`, ...Array(headers.length-1).fill('')];
+  const rows = [titleRow, dateRow, [], headers, ...data];
+  const csv = bom + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  showToast(`✅ ${filename} downloaded`, 'green');
+}
+
+function quickExport(type) {
+  const config = exportConfigs[type];
+  if (!config) return;
+  const dateStr = new Date().toISOString().split('T')[0];
+  downloadCSV(type, config.getData(), config.headers, `ParkSmart_${type}_${dateStr}.csv`);
+}
+
+function doCustomExport() {
+  const type   = document.getElementById('exportType').value;
+  const date   = document.getElementById('exportDate').value;
+  const status = document.getElementById('exportStatus').value;
+  const config = exportConfigs[type];
+  if (!config) return;
+  let data = config.getData();
+  // Filter by status if applicable (entry-exit type)
+  if (type === 'entry-exit' && status !== 'all') {
+    const bData = bookings.filter(b => b.status === status);
+    data = bData.map(b => {
+      const entryM = parseTime12(b.entry), exitM = parseTime12(b.exit);
+      const dur = Math.max(0, exitM - entryM);
+      return [b.id, b.slot, b.name, b.vehicle, b.entry, b.exit, `${Math.floor(dur/60)}h ${dur%60}m`, b.status.toUpperCase(), `₹${b.paid}`, b.refund>0?`₹${b.refund}`:'—'];
+    });
+  }
+  const dateStr = new Date().toISOString().split('T')[0];
+  downloadCSV(type, data, config.headers, `ParkSmart_${type}_${date.replace(/\s/g,'-')}_${dateStr}.csv`);
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+buildSlotGrid('adminSlotGrid');
+buildBookingTable();
+buildAllBookings();
+buildRevenue();
+buildAdminList();
+buildExportPreview('entry-exit');
+
+document.getElementById('slotModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSlotModal();
+});
+</script>
+</body>
+</html>
